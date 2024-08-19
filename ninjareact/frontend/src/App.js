@@ -1,8 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-axios.defaults.xsrfCookieName = 'csrftoken';
-axios.defaults.xsrfHeaderName = 'X-CSRFToken';
+const getCsrfToken = () => {
+  const name = 'csrftoken=';
+  const decodedCookie = decodeURIComponent(document.cookie);
+  const cookieArray = decodedCookie.split(';');
+  for (let i = 0; i < cookieArray.length; i++) {
+    let cookie = cookieArray[i].trim();
+    if (cookie.indexOf(name) === 0) {
+      return cookie.substring(name.length, cookie.length);
+    }
+  }
+  return '';
+};
+
+const axiosInstance = axios.create({
+  headers: {
+    'X-CSRFToken': getCsrfToken(),
+  },
+  withCredentials: true,
+});
 
 const App = () => {
   const [message, setMessage] = useState('');
@@ -16,7 +33,7 @@ const App = () => {
 
   const fetchMessage = async () => {
     try {
-      const response = await axios.get('/api/message');
+      const response = await axiosInstance.get('/api/message');
       setMessage(response.data.content);
     } catch (error) {
       console.error('Error fetching message:', error);
@@ -25,25 +42,33 @@ const App = () => {
 
   const updateMessage = async () => {
     try {
-      const response = await axios.put('/api/message', { new_message: newMessage });
+      const response = await axiosInstance.put('/api/message', { new_message: newMessage });
       setMessage(response.data.message);
       setNewMessage('');
     } catch (error) {
       console.error('Error updating message:', error);
-      if (error.response && error.response.status === 403) {
-        alert('You are not authenticated. Please log in to update the message.');
-      } else if (error.response && error.response.status === 422) {
-        alert('Invalid data format. Please check your input.');
+      if (error.response) {
+        if (error.response.status === 401) {
+          alert('Authentication failed. Please log in again.');
+          setIsAuthenticated(false);
+        } else if (error.response.status === 403) {
+          alert('You do not have permission to perform this action.');
+        } else if (error.response.status === 422) {
+          alert('Invalid data format. Please check your input.');
+        } else {
+          alert('An error occurred. Please try again.');
+        }
       }
     }
   };
 
   const checkAuthStatus = async () => {
     try {
-      const response = await axios.get('/api/auth_status');
+      const response = await axiosInstance.get('/api/auth_status');
       setIsAuthenticated(response.data.is_authenticated);
     } catch (error) {
       console.error('Error checking auth status:', error);
+      setIsAuthenticated(false);
     }
   };
 
