@@ -1,0 +1,23 @@
+{
+    "name": "hello-world-react-django",
+    "version": "1.0.0",
+    "description": "A simple React frontend for a Django Ninja API",
+    "main": "index.js",
+    "scripts": {
+      "start": "webpack --mode development --watch",
+      "build": "webpack --mode production"
+    },
+    "dependencies": {
+      "react": "^18.2.0",
+      "react-dom": "^18.2.0",
+      "axios": "^0.21.1"
+    },
+    "devDependencies": {
+      "@babel/core": "^7.14.3",
+      "@babel/preset-env": "^7.14.2",
+      "@babel/preset-react": "^7.13.13",
+      "babel-loader": "^8.2.2",
+      "webpack": "^5.38.1",
+      "webpack-cli": "^4.7.0"
+    }
+  }
