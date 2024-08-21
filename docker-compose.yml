@@ -1,0 +1,27 @@
+services:
+  backend:
+    build:
+      context: ./ninjareact
+    container_name: django_backend
+    command: python manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ninjareact:/app
+    depends_on:
+      - frontend
+    networks:
+      - app_network
+
+  frontend:
+    build:
+      context: ./ninjareact/frontend
+    container_name: react_frontend
+    ports:
+      - "3000:3000"
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
