@@ -1,10 +1,15 @@
+
 from ninja import NinjaAPI, Schema
 from ninja.security import HttpBearer
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, login, logout
 from rest_framework.authtoken.models import Token
 from django.views.decorators.csrf import csrf_protect
-from django.utils.decorators import method_decorator
+
+from django.http import JsonResponse
+import json
+
+api = NinjaAPI(auth=None)
+
 
 class BearerAuth(HttpBearer):
     def authenticate(self, request, token):
@@ -20,26 +25,68 @@ class SessionAuth:
             return request.user
         return None
 
-api = NinjaAPI(auth=None)
 
-message = {"content": "Hello, World!"}
+@api.post("/login")
+def login_view(request):
+    data = json.loads(request.body)
+    username = data.get('username')
+    password = data.get('password')
+
+    if username is None or password is None:
+        return JsonResponse({
+            'success': False,
+            'error': 'Please enter a username and password'
+        })
+
+    user = authenticate(username=username, password=password)
+    if user is None:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid username or password'
+        }, status=400)
+
+    login(request, user)
+
+    return JsonResponse({
+        'success': True,
+        'username': user.username,
+    })
+
+@api.get("/logout")
+def logout_view(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            "detail": "Not logged in"
+        }, status=400)
+
+    logout(request)
+
+    return JsonResponse({
+        "detail": "Successful logout"
+    })
+
+@api.get("/session")
+def session_view(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({
+            "isAuthenticated": False
+        })
+
+    return JsonResponse({
+        "isAuthenticated": True,
+        "username": request.user.username
+    })
 
 class MessageUpdate(Schema):
     new_message: str
 
-@api.get("/message")
-def get_message(request):
-    return message
-
 @api.put("/message", auth=[BearerAuth(), SessionAuth()])
 @csrf_protect
 def update_message(request, data: MessageUpdate):
-    message["content"] = data.new_message
-    return {"status": "success", "message": message["content"]}
-
-@api.get("/auth_status")
-def auth_status(request):
-    return {"is_authenticated": request.user.is_authenticated}
+    return {
+        "status": "success",
+        "message": f"Thanks for sending '{data.new_message}', {request.user.username}!"
+    }
 
 class AuthInfo(Schema):
     username: str
