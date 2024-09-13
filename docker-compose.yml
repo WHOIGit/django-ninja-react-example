@@ -3,13 +3,13 @@ services:
     build:
       context: ./ninjareact
     command: >
-      sh -c "python ninjareact/manage.py runserver 0.0.0.0:8000 & npm run --prefix=ninjareact/frontend dev -- --host"
+      sh -c "python manage.py runserver 0.0.0.0:8000 & npm run --prefix=frontend dev -- --host"
     env_file:
       - .env
     ports:
       - "5173:5173"
     restart: always
-    # TODO: For local dev
-    # TODO: Not quite right - copies root level values in, but without it, lots of errors?
     volumes:
-      - .:/app
+      - ./ninjareact:/app
+      - /app/frontend/node_modules
+
