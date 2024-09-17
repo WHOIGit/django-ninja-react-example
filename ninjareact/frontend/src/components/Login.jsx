@@ -15,7 +15,7 @@ function Login() {
         event.preventDefault();
 
         const data = await Api.login(username, password);
-        if (!data.success) {
+        if (!data.username) {
             setError(data.error);
             return;
         }

@@ -1,8 +1,5 @@
 import Cookies from "universal-cookie"
 
-// TODO: Try/catch on fetch calls
-// TODO: Return non-200 responses on errors (and handle downstream)
-
 const session = async () => {
     const response = await fetch("/api/session", {
         contentType: "application/json",

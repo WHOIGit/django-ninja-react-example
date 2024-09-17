@@ -2,13 +2,10 @@
 from ninja import NinjaAPI, Schema
 from ninja.security import HttpBearer
 from django.contrib.auth import authenticate, login, logout
+from django.http import JsonResponse, HttpRequest
 from rest_framework.authtoken.models import Token
-from django.views.decorators.csrf import csrf_protect
 
-from django.http import JsonResponse
-import json
-
-api = NinjaAPI(auth=None)
+api = NinjaAPI(auth=None, csrf=True)
 
 
 class BearerAuth(HttpBearer):
@@ -25,48 +22,48 @@ class SessionAuth:
             return request.user
         return None
 
+class MessageUpdate(Schema):
+    new_message: str
+
+class AuthInfo(Schema):
+    username: str
+    password: str
+
 
 @api.post("/login")
-def login_view(request):
-    data = json.loads(request.body)
-    username = data.get('username')
-    password = data.get('password')
-
-    if username is None or password is None:
+def login_view(request: HttpRequest, data: AuthInfo):
+    if data.username is None or data.password is None:
         return JsonResponse({
-            'success': False,
             'error': 'Please enter a username and password'
-        })
+        }, status=400)
 
-    user = authenticate(username=username, password=password)
+    user = authenticate(username=data.username, password=data.password)
     if user is None:
         return JsonResponse({
-            'success': False,
             'error': 'Invalid username or password'
         }, status=400)
 
     login(request, user)
 
-    return JsonResponse({
-        'success': True,
-        'username': user.username,
-    })
+    return {
+        'username': user.username
+    }
 
 @api.get("/logout")
-def logout_view(request):
+def logout_view(request: HttpRequest):
     if not request.user.is_authenticated:
         return JsonResponse({
-            "detail": "Not logged in"
+            "error": "Not logged in"
         }, status=400)
 
     logout(request)
 
-    return JsonResponse({
-        "detail": "Successful logout"
-    })
+    return {
+        "message": "Successful logout"
+    }
 
 @api.get("/session")
-def session_view(request):
+def session_view(request: HttpRequest):
     if not request.user.is_authenticated:
         return JsonResponse({
             "isAuthenticated": False
@@ -77,26 +74,22 @@ def session_view(request):
         "username": request.user.username
     })
 
-class MessageUpdate(Schema):
-    new_message: str
-
 @api.put("/message", auth=[BearerAuth(), SessionAuth()])
-@csrf_protect
 def update_message(request, data: MessageUpdate):
     return {
-        "status": "success",
         "message": f"Thanks for sending '{data.new_message}', {request.user.username}!"
     }
 
-class AuthInfo(Schema):
-    username: str
-    password: str
-
 @api.post("/api-token-auth")
-def create_auth_token(request, data: AuthInfo):
+def create_auth_token(request: HttpRequest, data: AuthInfo):
     user = authenticate(username=data.username, password=data.password)
-    if user is not None:
-        token, created = Token.objects.get_or_create(user=user)
-        return {"token": token.key}
-    else:
-        return {"error": "Invalid credentials"}, 401
+    if user is None:
+        return JsonResponse({
+            "error": "Invalid credentials"
+        }, status=401)
+
+    token, created = Token.objects.get_or_create(user=user)
+
+    return {
+        "token": token.key
+    }
