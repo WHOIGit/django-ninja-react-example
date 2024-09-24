@@ -1,4 +1,4 @@
-
+from django.views.decorators.csrf import ensure_csrf_cookie
 from ninja import NinjaAPI, Schema
 from ninja.security import HttpBearer
 from django.contrib.auth import authenticate, login, logout
@@ -63,6 +63,7 @@ def logout_view(request: HttpRequest):
     }
 
 @api.get("/session")
+@ensure_csrf_cookie
 def session_view(request: HttpRequest):
     if not request.user.is_authenticated:
         return JsonResponse({
