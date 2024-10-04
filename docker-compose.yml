@@ -2,9 +2,14 @@ services:
   web:
     build:
       context: ./ninjareact
-    command: python manage.py runserver 0.0.0.0:8000
+    command: >
+      sh -c "python manage.py runserver 0.0.0.0:8000 & npm run --prefix=frontend dev -- --host"
     env_file:
       - .env
     ports:
-      - "8000:8000"
+      - "5173:5173"
     restart: always
+    volumes:
+      - ./ninjareact:/app
+      - /app/frontend/node_modules
+
